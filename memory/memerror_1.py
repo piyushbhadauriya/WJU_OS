@@ -1,0 +1,3 @@
+class NOMEMORY(Exception):
+    pass
+    
