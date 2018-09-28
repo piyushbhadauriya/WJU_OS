@@ -2,6 +2,7 @@
 import numpy as np
 from memory.memcommon import MemCommon
 from memory.memmgmt import MemMgmt 
+from memory.memerror import NOMEMORY
 
 class MemMgr:
     row_size = MemCommon.row_size
@@ -9,19 +10,23 @@ class MemMgr:
     mgmt_row_size = MemCommon.mgmt_row_size
     mgmt_column_size = MemCommon.mgmt_column_size
 
-    memarray = np.zeros(shape=(row_size,column_size), dtype = 'int8')
+    memarray = np.zeros(shape=(row_size,column_size), dtype = 'int64')
     
 
     @classmethod
     def get_mem(cls, pid, nbrblocks):
-        start_index,end_index = MemMgmt.find_free_space(pid,nbrblocks)
+        mem_list = [] 
+        try:
+            alist = MemMgmt.find_free_space(pid,nbrblocks)
+        except NOMEMORY :
+            return [None]
         
-        if start_index == MemCommon.Invalid:
-            return MemCommon.NULLARRAY
-        else:
-            aa = MemMgr.memarray[start_index:end_index+1,:MemMgr.column_size]
-        return aa
-      
+        if len(alist) == nbrblocks:
+            for pageFrameIndex in alist:
+                aa = MemMgr.memarray[pageFrameIndex]
+                tuplea = (pageFrameIndex,aa)
+                mem_list.append(tuplea)
+        return mem_list
 
     @classmethod
     def release_mem(cls, pid):
@@ -34,4 +39,3 @@ class MemMgr:
             print(str(i)+' : '+ str(MemMgr.memarray[i,:MemMgr.column_size]))
         print('--------------------------------')
     
-      

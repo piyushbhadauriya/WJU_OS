@@ -1,37 +1,30 @@
-from memory.memcommon import MemCommon
 import numpy as np
+from memory.memcommon import MemCommon
+import memory.memerror as me
 #from memory.memmgr import MemMgr
 class MemMgmt:
     mgmt =  np.zeros(shape=(MemCommon.mgmt_row_size,MemCommon.mgmt_column_size), dtype = 'int32')
     
     @classmethod
     def find_free_space(cls, pid, nbrblocks):
-        pid_coulmn = 0
-        found = False
+        pid_coulmn = MemCommon.pid_column
+        indexList = []
         for r in range(0,MemCommon.mgmt_row_size):
             if (MemMgmt.mgmt[r,pid_coulmn] == 0):
-                found = True
-                start = r
-                if (r+nbrblocks-1 >= MemCommon.mgmt_row_size):
-                    found = False
-                    break
-                for x in range(r,nbrblocks+1):
-                    if (MemMgmt.mgmt[x,0] == 0) :
-                        continue
-                    else:
-                        found = False
-                        break
-            if found :
-                MemMgmt.update_mgmt(pid,start,start+nbrblocks)                
-                return start, start+nbrblocks-1
-        return -1,-1
+                indexList.append(r)
+            if len(indexList) == nbrblocks:
+                MemMgmt.update_mgmt(pid,indexList)
+                return indexList
+        raise me.NOMEMORY
+
+                
 
     @classmethod
-    def update_mgmt(cls, pid, start,end):   
+    def update_mgmt(cls, pid, indexes):   
         # update the mgmt table
         pid_column = MemCommon.pid_column
-        for r in range(start,end):
-           MemMgmt.mgmt[r,pid_column] = pid   
+        for r in indexes:
+           MemMgmt.mgmt[r,pid_column] = pid
 
     @classmethod
     def release_mem(cls, pid):

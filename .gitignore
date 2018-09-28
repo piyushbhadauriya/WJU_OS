@@ -2,3 +2,4 @@
 etc/
 *.txt
 .vscode/
+*.npy
