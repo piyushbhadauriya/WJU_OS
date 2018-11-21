@@ -121,7 +121,7 @@ def buffer_clear(user_input):
         buffer = bytearray()
 
 def scan_blockmap(user_input):
-
+    pass
 
 print("\n###########\nStarting Simple File System")   
 help()
@@ -133,7 +133,7 @@ while True:
     elif func == 'disk_init':
         disk_init(user_input)
     elif func == 'disk_open':
-        disk_open(user_input)
+        disk_open(user_input)     
     elif func == 'disk_status':
         disk_status(user_input)
     elif func == 'disk_read':
@@ -151,7 +151,7 @@ while True:
     elif func == 'buffer_clear':
         buffer_clear(user_input)
     elif func == 'scan_blockmap':
-        scan_blockmap(user_input)
+        scan_blockmap(user_input)   
     elif func == 'exit':
         print('Exit Simple File System')
         break

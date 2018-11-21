@@ -10,7 +10,7 @@ class sfs:
     bitmap = None
     inodemap = None
     # inode
-    blocki = 3 # inode start block
+    blocki = 3# inode start block
     inode_size = 32
     idx_isvalid = 0 # set 0 for empty inode and 1 for used inode
     idx_size = 1  #  128 Bytes 
@@ -49,6 +49,7 @@ class sfs:
             freeblock = cls.bitmap.findFree()
             cls.disk.disk_write(freeblock, bytearray(cls.disk.blocksize))
         cls.disk.disk_close()
+    
     @classmethod
     def fs_format(cls):
         cls.disk.disk_init(cls.filename,cls.nblocks)
@@ -58,9 +59,10 @@ class sfs:
         cls.bitmap = BlockBitMap(512,1)
         # create inodes 
         cls.init_inodes()
-        
-        # to-do: create inodemap
-
+        #to-do: create inodemap
+    @classmethod
+    def scan_BlockBitMap(cls):
+        pass
         
         
 
