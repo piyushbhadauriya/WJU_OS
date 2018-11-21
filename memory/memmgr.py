@@ -7,8 +7,8 @@ from memory.memerror import NOMEMORY
 class MemMgr:
     row_size = MemCommon.row_size
     column_size = MemCommon.column_size
-    mgmt_row_size = MemCommon.mgmt_row_size
-    mgmt_column_size = MemCommon.mgmt_column_size
+#    mgmt_row_size = MemCommon.mgmt_row_size
+#    mgmt_column_size = MemCommon.mgmt_column_size
 
     memarray = np.zeros(shape=(row_size,column_size), dtype = 'int64')
     
@@ -17,13 +17,13 @@ class MemMgr:
     def get_mem(cls, pid, nbrblocks):
         mem_list = [] 
         try:
-            alist = MemMgmt.find_free_space(pid,nbrblocks)
+            index_list = MemMgmt.find_free_space(pid,nbrblocks)
         except NOMEMORY :
             return [None]
         
-        if len(alist) == nbrblocks:
-            for pageFrameIndex in alist:
-                aa = MemMgr.memarray[pageFrameIndex]
+        if len(index_list) == nbrblocks:
+            for pageFrameIndex in index_list:
+                aa = MemMgr.memarray[pageFrameIndex,:]
                 tuplea = (pageFrameIndex,aa)
                 mem_list.append(tuplea)
         return mem_list

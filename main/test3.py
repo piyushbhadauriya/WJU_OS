@@ -9,14 +9,18 @@ def modify(px):
     for v in vectorlist:
         for r in range(0,v.shape[0]):
             v[r] = nbr
-    
+'''    
+
+'''
 
 def printAll(astring,myprocess):
     print(" ********* start: ", astring, '*********')
-    myprocess.display_PMT()
+    myprocess.display_ProcessMgT()
+    print("================= Global Memory Management ================")
     mema.MemMgr.display_mem()
     mgmt.MemMgmt.display_mgmt()
     print(" *********** end: ", astring, '***********')
+
 
 # first process
 p1 = px.ProcessX(4)
@@ -45,3 +49,12 @@ p3 = px.ProcessX(3)
 p3.load_pages([0,1])
 modify(p3)
 printAll("third process p3 ",p3)
+
+# forth process
+p4 = px.ProcessX(3)
+p4.load_pages([0])
+modify(p4)
+printAll("forth process p4 ",p4)
+
+print ('###### PID to Process dict ############')  
+print (mgmt.MemMgmt.process_table)
