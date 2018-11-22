@@ -1,28 +1,33 @@
-from SFS import diskpy
-from SFS import sfs
+import diskpy
+import sfs
+
 def help():
-    print('# help')
-    print('# disk_init [File Name] [No of Blocks]')
-    print('      *** Create a new disk')
-    print('# disk_open [File Name]')
-    print('      *** Open a existing')
+    print('# cmds')
+    print('# disk_init [Number of Blocks]')
+    print('      *** Initialize a disk to a given number of blocks')
+    # print('# disk_open [File Name]')
+    # print('      *** Open a existing')
     print('# disk_status')
     print('      *** display disk status')
-    print('# disk_read [Block No]')
-    print('      *** read block from disk and print')
-    print('# disk_write [Block No]')
-    print('      *** Write buffer to the Disk')
-    print('# disk_close')
-    print('      *** Close disk')
-    print('------------------------------------------------------')
-    print('# read_to_buffer [Block No]')
-    print('      *** read block from disk and add to buffer')
-    print('# buffer_fill [String]')
-    print('      *** read block from String and add to buffer')
-    print('# buffer_print')
-    print('      *** print current buffer')
-    print('# buffer_clear')
-    print('      *** delete the buffer')
+    # print('# disk_read [Block No]')
+    # print('      *** read block from disk and print')
+    # print('# disk_write [Block No]')
+    # print('      *** Write buffer to the Disk')
+    # print('# disk_close')
+    # print('      *** Close disk')
+    print('# disk_format ')
+    print('      *** Create a formated file syatem')
+    print('# scan ')
+    print('      *** Scan and Print Block BitMap and node Bitmap')
+    # print('------------------------------------------------------')
+    # print('# read_to_buffer [Block No]')
+    # print('      *** read block from disk and add to buffer')
+    # print('# buffer_fill [String]')
+    # print('      *** read block from String and add to buffer')
+    # print('# buffer_print')
+    # print('      *** print current buffer')
+    # print('# buffer_clear')
+    # print('      *** delete the buffer')
     print('# exit')
     
 disk = diskpy.mydisk()
@@ -30,18 +35,17 @@ buffersize = 512
 buffer = bytearray()
 
 def disk_init(user_input):
-    if len(user_input) == 3 and user_input[2].isdigit():
-        disk.disk_init(user_input[1],int(user_input[2]))
+    if len(user_input) == 2 and user_input[1].isdigit():
+        sfs.sfs.fs_init(int(user_input[1]))
+        print('disk initialized')
     else :
         print ('Wrong Arguments :',user_input)
-#        help()
 
 def disk_open(user_input):
     if len(user_input) == 2 :
         disk.disk_open(user_input[1])
     else :
         print ('Wrong Arguments :',user_input)
-#        help()
 
 def disk_status(user_input):
     disk.disk_status()
@@ -53,7 +57,6 @@ def disk_read(user_input):
             print(r.decode())
     else :
         print ('Wrong Arguments :',user_input)
-#        help()
 
 def disk_close(user_input):
     disk.disk_close()
@@ -120,15 +123,30 @@ def buffer_clear(user_input):
     else :
         buffer = bytearray()
 
-def scan_blockmap(user_input):
-    pass
+def scan(user_input):
+    if disk.filename == None :
+        print('Disk file not avilable. Use disk_init to create one')
+    else :
+        try:
+            print('---Block Bitmap(Total 64)---')
+            sfs.sfs.scan_BlockBitMap()
+            print('---Node Bitmap(Total 48)---')
+            sfs.sfs.scan_NodeBitMap()
+        except:
+            print('Disk not formated')
+
+def disk_format(disker_input):
+    if disk.filename == None :
+        print('Disk file not avilable. Use disk_init to create one')
+    else :
+        sfs.sfs.fs_format()
 
 print("\n###########\nStarting Simple File System")   
 help()
 while True:
     user_input = input('SFS>').strip().split(' ')
     func = user_input[0].lower()
-    if func == 'help':
+    if func == 'cmds':
         help()
     elif func == 'disk_init':
         disk_init(user_input)
@@ -150,13 +168,16 @@ while True:
         buffer_print(user_input)
     elif func == 'buffer_clear':
         buffer_clear(user_input)
-    elif func == 'scan_blockmap':
-        scan_blockmap(user_input)   
+    elif func == 'scan':
+        scan(user_input)
+    elif func == 'disk_format':
+        disk_format(user_input)  
     elif func == 'exit':
         print('Exit Simple File System')
         break
     else :
         print ('Wrong command :',user_input)
+        print('use cmds for list of commands')
 #        help()
 
     

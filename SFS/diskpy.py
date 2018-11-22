@@ -2,28 +2,27 @@ import os
 
 class mydisk:
     diskimage = None # file pointer
-    image_name = None # name of the image file
+    filename = None # name of the image file
     blocksize = 512
     nbrOfBlocks = 0
     
     @classmethod
-    def disk_init(cls,filename, nbrOfBlocks):
-        cls.image_name = filename
+    def disk_init(cls,image, nbrOfBlocks):
         cls.nbrOfBlocks = int(nbrOfBlocks)
         cls.diskimage = None
+        cls.filename = image
         arr = bytearray(cls.blocksize)
-        with open(filename, 'wb') as fb:
-            [fb.write(arr) for i in range(nbrOfBlocks)]
-        
+        with open(cls.filename, 'wb') as fb:
+            [fb.write(arr) for i in range(nbrOfBlocks)]   
 
     # Open an existing disk
     @classmethod
     def disk_open(cls,filename= None):
         if filename == None:
-            filename = cls.image_name
+            filename = cls.filename
         try:
             cls.diskimage = open(filename, 'rb+')
-            cls.image_name = filename
+            cls.filename = filename
         except Exception as es:
             print('invalid filename use init_disk to create it')
             print(es)
@@ -72,16 +71,16 @@ class mydisk:
     # Display the statistics of disk
     @classmethod
     def disk_status(cls):
-        if cls.image_name != None:
-            print("Diskimage : ",cls.image_name)
+        if cls.filename != None:
+            print("Diskimage : ",cls.filename)
             print("Block size : ",cls.blocksize," Bytes")
-            size = os.path.getsize(cls.image_name)
+            size = os.path.getsize(cls.filename)
             print("Number Of Blocks : ",cls.nbrOfBlocks)
             print ("Disk Size : ", size, " Bytes")
         else:
             print ("No image file")
         if cls.diskimage != None:
-            print("DiskStatus : Open :",cls.image_name)
+            print("DiskStatus : Open :",cls.filename)
         else :
              print("DiskStatus : Closed")
 

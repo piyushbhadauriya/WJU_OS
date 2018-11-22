@@ -1,8 +1,9 @@
 import diskpy
 import numpy as np
 from blockbitmap import BlockBitMap
+from inodebitmap import NodeBitMap
 class sfs:
-    filename = 'image_512.20'
+    filename = 'image_512'
     encoding = 'utf-8'
     INTEGER_SIZE = 'int32'
 
@@ -17,7 +18,6 @@ class sfs:
     idx_direct = 2 # index of Data Block
 
     #superblock
-    block0 = 0
     magic = 12345
     nblocks = 64 
     ninodeblocks = 3
@@ -29,43 +29,75 @@ class sfs:
     idx_ninodes = 3
     idx_dentry = 4 # directroy inode
     
+    superblock_BN = 0
+    blockbitmap_BN = 1
+    nodebitmap_BN = 2
+    inobeBlock_BN = 3 #3,4,5
+    
     @classmethod
     def init_Superblock(cls):
-        sBlock = np.zeros(shape=(4, 1),dtype=cls.INTEGER_SIZE)
+        sBlock = np.zeros(shape=(5, 1),dtype=cls.INTEGER_SIZE)
         sBlock[cls.idx_magic] = cls.magic
         sBlock[cls.idx_nblocks] = cls.nblocks
         sBlock[cls.idx_ninodeblocks] = cls.ninodeblocks
         sBlock[cls.idx_ninodes] = cls.ninodes
+        sBlock[cls.idx_dentry] = cls.dentry_inode
         cls.disk.disk_open(cls.filename)
         superblock = sBlock.tobytes()
         # write superblock to Block0  
-        cls.disk.disk_write(cls.block0, superblock)
+        cls.disk.disk_write(cls.superblock_BN, superblock)
         cls.disk.disk_close()
     
     @classmethod
     def init_inodes(cls):
         cls.disk.disk_open(cls.filename)
         for i in range (cls.ninodeblocks):
-            freeblock = cls.bitmap.findFree()
-            cls.disk.disk_write(freeblock, bytearray(cls.disk.blocksize))
+            cls.disk.disk_write(cls.inobeBlock_BN+i, bytearray(cls.disk.blocksize))
         cls.disk.disk_close()
+
+    @classmethod
+    def init_blockmap(cls):
+        cls.bitmap = BlockBitMap(cls.blockbitmap_BN)
+        cls.bitmap.init()
+        cls.bitmap.saveToDisk()
     
     @classmethod
-    def fs_format(cls):
+    def init_nodemap(cls):
+        cls.nodemap = NodeBitMap(cls.nodebitmap_BN)
+        cls.nodemap.init()
+        cls.nodemap.saveToDisk()
+    
+    @classmethod
+    def fs_init(cls,nbrblock):
+        cls.nblocks = nbrblock
+        print('Creating file system with ',cls.nblocks,' Blocks Of Block Size ',cls.disk.blocksize, ' Bytes')
         cls.disk.disk_init(cls.filename,cls.nblocks)
+
+    @classmethod
+    def fs_format(cls):
         # set up Superblock
+        if cls.disk.filename == None : 
+            print('No disk to format.')
+            return
         cls.init_Superblock()
+        print('Superblock created on block 0')
         # create bitmap 
-        cls.bitmap = BlockBitMap(512,1)
+        cls.init_blockmap()
+        print('Block bitmap created on block 1')
         # create inodes 
         cls.init_inodes()
-        #to-do: create inodemap
+        print('iNodes created on blocks 3 - 5')
+        #create inodemap
+        cls.init_nodemap()
+        print('iNode bitmap created on block 2')
+    
     @classmethod
     def scan_BlockBitMap(cls):
-        pass
+        cls.bitmap.scan()
+    @classmethod
+    def scan_NodeBitMap(cls):
+        cls.nodemap.scan()
         
-        
-
     # @classmethod
     # def fs_write(cls,inumber,data): # write to a inode
     #     # create and write a inode
@@ -107,7 +139,7 @@ class sfs:
     @classmethod
     def print_info(cls): # print superblock and inode info
         cls.disk.disk_open(cls.filename)
-        sb = cls.disk.disk_read(cls.block0)
+        sb = cls.disk.disk_read(cls.superblock_BN)
         sbArray = np.frombuffer(sb[:16],dtype=cls.INTEGER_SIZE)
         print("==================== Super Block ====================")
         print('Blocksize : ', cls.disk.blocksize)
