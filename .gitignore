@@ -3,3 +3,4 @@ etc/
 *.txt
 .vscode/
 *.npy
+image*

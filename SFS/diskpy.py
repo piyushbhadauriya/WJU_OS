@@ -17,15 +17,17 @@ class mydisk:
 
     # Open an existing disk
     @classmethod
-    def disk_open(cls,filename= None):
+    def disk_open(cls,filename = None):
         if filename == None:
             filename = cls.filename
         try:
             cls.diskimage = open(filename, 'rb+')
             cls.filename = filename
+            return True
         except Exception as es:
             print('invalid filename use init_disk to create it')
             print(es)
+            return False
         
 
     #Read the whole block and return an array or list of bytes
@@ -34,12 +36,12 @@ class mydisk:
         if cls.diskimage == None:
             print('plese open the disk image using disk_open berfore reading')
             return None
-        elif (blockNumber >= cls.nbrOfBlocks):
+        elif (blockNumber < 0):
             print('read failed: invalid Block number')
             return None
         else :
             try :
-                cls.diskimage.seek(blockNumber*cls.blocksize)
+                #cls.diskimage.seek(blockNumber*cls.blocksize)
                 # go to the start
                 cls.diskimage.seek(0, 0)
                 cls.diskimage.seek(blockNumber*cls.blocksize)
@@ -90,8 +92,15 @@ class mydisk:
         if cls.diskimage != None:
             cls.diskimage.close()
             cls.diskimage = None
+            return True
         else: 
             print('No Disk image to close')
+            return False
+
+    @classmethod
+    def setnbrOfBlocks(cls,nbrOfBlocks):
+        cls.nbrOfBlocks = nbrOfBlocks
+
 '''
 mydisk.disk_init("image1.10",10)
 mydisk.disk_open("image1.10")

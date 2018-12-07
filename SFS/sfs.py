@@ -1,23 +1,27 @@
 import diskpy
 import numpy as np
-from blockbitmap import BlockBitMap
-from inodebitmap import NodeBitMap
+# from blockbitmap import BlockBitMap
+# from inodebitmap import NodeBitMap
+from bmaps import Bmaps
+from direntry import DirEntry
 class sfs:
-    filename = 'image_512'
+    filename = 'image'
     encoding = 'utf-8'
     INTEGER_SIZE = 'int32'
 
     disk = diskpy.mydisk()
-    bitmap = None
-    inodemap = None
     # inode
-    blocki = 3# inode start block
     inode_size = 32
     idx_isvalid = 0 # set 0 for empty inode and 1 for used inode
     idx_size = 1  #  128 Bytes 
     idx_direct = 2 # index of Data Block
+    FREE = 0
+    FILE = 1
+    DIR = 2
+    BAD = 99
 
     #superblock
+    superblock_size = 5
     magic = 12345
     nblocks = 64 
     ninodeblocks = 3
@@ -30,13 +34,13 @@ class sfs:
     idx_dentry = 4 # directroy inode
     
     superblock_BN = 0
+    inobeBlock_BN = 3 #3,4,5
     blockbitmap_BN = 1
     nodebitmap_BN = 2
-    inobeBlock_BN = 3 #3,4,5
     
     @classmethod
     def init_Superblock(cls):
-        sBlock = np.zeros(shape=(5, 1),dtype=cls.INTEGER_SIZE)
+        sBlock = np.zeros(shape=(cls.superblock_size, 1),dtype=cls.INTEGER_SIZE)
         sBlock[cls.idx_magic] = cls.magic
         sBlock[cls.idx_nblocks] = cls.nblocks
         sBlock[cls.idx_ninodeblocks] = cls.ninodeblocks
@@ -54,50 +58,118 @@ class sfs:
         for i in range (cls.ninodeblocks):
             cls.disk.disk_write(cls.inobeBlock_BN+i, bytearray(cls.disk.blocksize))
         cls.disk.disk_close()
+        
 
-    @classmethod
-    def init_blockmap(cls):
-        cls.bitmap = BlockBitMap(cls.blockbitmap_BN)
-        cls.bitmap.init()
-        cls.bitmap.saveToDisk()
+
+    # @classmethod
+    # def init_blockmap(cls):
+    #     cls.bitmap = BlockBitMap(cls.blockbitmap_BN)
+    #     cls.bitmap.init()
+    #     cls.bitmap.saveToDisk()
     
-    @classmethod
-    def init_nodemap(cls):
-        cls.nodemap = NodeBitMap(cls.nodebitmap_BN)
-        cls.nodemap.init()
-        cls.nodemap.saveToDisk()
+    # @classmethod
+    # def init_nodemap(cls):
+    #     cls.nodemap = NodeBitMap(cls.nodebitmap_BN)
+    #     cls.nodemap.init()
+    #     cls.nodemap.saveToDisk()
     
     @classmethod
     def fs_init(cls,nbrblock):
         cls.nblocks = nbrblock
-        print('Creating file system with ',cls.nblocks,' Blocks Of Block Size ',cls.disk.blocksize, ' Bytes')
         cls.disk.disk_init(cls.filename,cls.nblocks)
+        print('Disk initiatized with ',cls.nblocks,' Blocks Of Block Size ',cls.disk.blocksize, ' Bytes')
 
     @classmethod
     def fs_format(cls):
+        cls.disk.disk_init(cls.filename,cls.nblocks)
         # set up Superblock
         if cls.disk.filename == None : 
             print('No disk to format.')
             return
         cls.init_Superblock()
         print('Superblock created on block 0')
-        # create bitmap 
-        cls.init_blockmap()
-        print('Block bitmap created on block 1')
+        #create block Map and inode Map
+        Bmaps.init(cls.nblocks,cls.ninodes)
         # create inodes 
         cls.init_inodes()
         print('iNodes created on blocks 3 - 5')
-        #create inodemap
-        cls.init_nodemap()
-        print('iNode bitmap created on block 2')
+        cls.createinode(cls.dentry_inode,cls.DIR)
+        DirEntry.init_dir(cls.dentry_inode,cls.dentry_inode)
+        print ('directory structure created')
     
     @classmethod
     def scan_BlockBitMap(cls):
-        cls.bitmap.scan()
+        Bmaps.blockbmap.scan()
     @classmethod
     def scan_NodeBitMap(cls):
-        cls.nodemap.scan()
+        Bmaps.inodebmap.scan()
+    @classmethod
+    def showDir(cls,d_inode):
+        d_block = cls.getBlockno(d_inode)
+        DirEntry.showDir(d_block)
+
+    @classmethod
+    def fs_mkdir(cls,name,c_inode):
+        DirEntry.add_dirname(name,c_inode)
+    @classmethod
+    def fs_mkfile(cls,name,c_inode):
+        DirEntry.add_filename(name,c_inode)
+    
+    @classmethod
+    def getBlockno(cls,d_inode):
+        if d_inode > cls.ninodes:
+            print('invalid inode ',d_inode)
+            return None
+        else:
+            cls.disk.disk_open()
+            block = int(cls.inobeBlock_BN+d_inode/16)
+            offset = int(cls.inode_size*(d_inode%16))
+            b_array = cls.disk.disk_read(block)[offset:offset+cls.inode_size]
+            inode = np.frombuffer(b_array,dtype=cls.INTEGER_SIZE)
+            cls.disk.disk_close()
+            return inode[cls.idx_direct]
+    
+    @classmethod
+    def getinode(cls,name,c_inode):
+        return DirEntry.findDir(name,c_inode)   
+
+    @classmethod
+    def createinode(cls,inodeNo,type,dataNode=None,):
+        if dataNode == None:
+            dataNode = Bmaps.blockbmap.findFree()
+        inode = np.zeros(shape=(int(cls.inode_size/4), 1),dtype=cls.INTEGER_SIZE)
+        inode[cls.idx_isvalid] = type
+        inode[cls.idx_size] = 0
+        inode[cls.idx_direct] = dataNode
+        if inodeNo > cls.ninodes:
+            print('invalid inode ',inodeNo)
+            return False
+        else:
+            cls.disk.disk_open()
+            block = int(cls.inobeBlock_BN+inodeNo/16)
+            offset = int(cls.inode_size*(inodeNo%16))
+            sucess = cls.disk.disk_write(block,inode.tobytes(),offset)
+            cls.disk.disk_close()
+            return sucess
+    
+    @classmethod
+    def fs_open(cls,filename):
+        sucess = cls.disk.disk_open(filename)
+        if sucess == True:
+            cls.filename = filename
+            b_array = cls.disk.disk_read(cls.superblock_BN)[:cls.superblock_size*32]
+            superblock = np.frombuffer(b_array,dtype=cls.INTEGER_SIZE)
+           # print(superblock)
+            cls.nblocks = superblock[cls.idx_nblocks]
+            cls.disk.setnbrOfBlocks(cls.nblocks)
+           # print (cls.disk.nbrOfBlocks)
+            Bmaps.init(None,None)
+            cls.disk.disk_open(filename)
+        return sucess
+
         
+
+
     # @classmethod
     # def fs_write(cls,inumber,data): # write to a inode
     #     # create and write a inode
@@ -136,33 +208,33 @@ class sfs:
     #         cls.disk.disk_close()
     #         return data[:inode[cls.idx_size]]
     
-    @classmethod
-    def print_info(cls): # print superblock and inode info
-        cls.disk.disk_open(cls.filename)
-        sb = cls.disk.disk_read(cls.superblock_BN)
-        sbArray = np.frombuffer(sb[:16],dtype=cls.INTEGER_SIZE)
-        print("==================== Super Block ====================")
-        print('Blocksize : ', cls.disk.blocksize)
-        print('Number of Blocks in Disk : ',sbArray[cls.idx_nblocks])
-        print('Number of inode blocks : ',sbArray[cls.idx_ninodeblocks])
-        print('Number of inodes : ',sbArray[cls.idx_ninodes])
-        print(sb)
+    # @classmethod
+    # def print_info(cls): # print superblock and inode info
+    #     cls.disk.disk_open(cls.filename)
+    #     sb = cls.disk.disk_read(cls.superblock_BN)
+    #     sbArray = np.frombuffer(sb[:16],dtype=cls.INTEGER_SIZE)
+    #     print("==================== Super Block ====================")
+    #     print('Blocksize : ', cls.disk.blocksize)
+    #     print('Number of Blocks in Disk : ',sbArray[cls.idx_nblocks])
+    #     print('Number of inode blocks : ',sbArray[cls.idx_ninodeblocks])
+    #     print('Number of inodes : ',sbArray[cls.idx_ninodes])
+    #     print(sb)
 
-        ind = cls.disk.disk_read(cls.blocki)
-        inodelist =[]
-        [inodelist.append(ind[i*cls.inode_size:(i+1)*cls.inode_size]) for i in range(sbArray[cls.idx_ninodes])]
-        print("==================== inodes ====================")
-        count = 0
-        for inode in inodelist:
-            inodeArray = np.frombuffer(inode,dtype=cls.INTEGER_SIZE)
-            if inodeArray[cls.idx_isvalid] == 1:
-                print('inode ',count,' -----> ','Block No ',inodeArray[cls.idx_direct])
-                print('Size of inode',inodeArray[cls.idx_size])
-                print(inode)
-            else: 
-                print('inode ',count,' : Empty')
-            count += 1 
-        cls.disk.disk_close()
+    #     ind = cls.disk.disk_read(cls.blocki)
+    #     inodelist =[]
+    #     [inodelist.append(ind[i*cls.inode_size:(i+1)*cls.inode_size]) for i in range(sbArray[cls.idx_ninodes])]
+    #     print("==================== inodes ====================")
+    #     count = 0
+    #     for inode in inodelist:
+    #         inodeArray = np.frombuffer(inode,dtype=cls.INTEGER_SIZE)
+    #         if inodeArray[cls.idx_isvalid] == 1:
+    #             print('inode ',count,' -----> ','Block No ',inodeArray[cls.idx_direct])
+    #             print('Size of inode',inodeArray[cls.idx_size])
+    #             print(inode)
+    #         else: 
+    #             print('inode ',count,' : Empty')
+    #         count += 1 
+    #     cls.disk.disk_close()
 
 # sfs.fs_format()
 # print("----------- Writing strings and integer to Disk--------------------")
