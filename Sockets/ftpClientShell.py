@@ -5,8 +5,8 @@ from threading import Thread
 import datetime
 import traceback
 myconn = None
+ftpport = 21
 class clientShell(Cmd):
-
     def do_connect(self,s):
         """ Connect to ftp server Syntex: 'connect server [port = 1121]' """
         global myconn
@@ -19,7 +19,7 @@ class clientShell(Cmd):
             print ("*** enter the ftpserver address to connect")
             return
         elif len(args) == 1:
-            port = 1121
+            port = ftpport
             server =  args[0]
         elif len(args) >= 2:
             try:

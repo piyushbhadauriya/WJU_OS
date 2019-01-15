@@ -1,9 +1,10 @@
 import socket			 
 import os
+from platform import uname
 from threading import Thread
 import datetime
 
-listen_port = 1121
+listen_port = 21
 
 class ClientThread(Thread):
 
@@ -117,13 +118,12 @@ class ClientThread(Thread):
             self.send_status('500')
     
     def do_SYST(self):
-        syst = os.uname()
+        syst = uname()
         if self.send_data(str(syst)) == True:
             self.send_status('200')
         else:
             self.send_status('500')   
         
-
     def run(self):
         #print('new client thread started')
         while True:
